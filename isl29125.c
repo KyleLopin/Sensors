@@ -21,30 +21,17 @@
 uint8 read_buffer[8];
 uint8 write_buffer[2];
 
-/***************************************
-*      Structures
-***************************************/ 
 
-struct isl_29125 {
-    uint8 color_mode;
-    uint8 intensity_range;
-    uint8 adc_resolution;
-    uint8 int_setting;
-    uint8 ir_offset;
-    uint8 ir_setting;
-    uint8 interrupt_color;
-    
-} ;
 
 
 /***************************************
 *      Static Function Prototypes
 ***************************************/  
 
-static bool isl29125_reset(void);
-static bool isl29125_config(uint8 config1, uint8 config2, uint8 config3);
+static bool isl29125_reset(ISL29125 sensor);
+static bool isl29125_config(ISL29125 sensor, uint8 config1, uint8 config2, uint8 config3);
 
-static inline void isl29125_write8(uint8 _register, uint8 data);
+static inline void isl29125_write8(ISL29125 sensor, uint8 _register, uint8 data);
 
 
 /******************************************************************************
@@ -62,33 +49,36 @@ static inline void isl29125_write8(uint8 _register, uint8 data);
 *
 *******************************************************************************/
 
-bool isl29125_init(void) {
+ISL29125 isl29125_init(void) {
     uint8 data;
-    data = sensor_read8(I2C_ADDRESS, DEVICE_ID_REG, read_buffer);
+    ISL29125 isl_sensor;
+    isl_sensor.comm.address = I2C_ADDRESS;
+    
+    data = sensor_read8(isl_sensor.comm, DEVICE_ID_REG);
     if (data != DEVICE_ID) {
-        return false;
+        isl_sensor.working = false;
     }
-    if (!isl29125_reset()) {
-        return false;
+    if (!isl29125_reset(isl_sensor)) {
+        isl_sensor.working = false;
     }
     
-    if (!isl29125_config(CONFIG1_RGB_MODE | CONFIG1_10KLUX, CONFIG2_IR_ADJUST_HIGH, CONFIG_DEFAULT)) {
-        return false;
+    if (!isl29125_config(isl_sensor, CONFIG1_RGB_MODE | CONFIG1_10KLUX, CONFIG2_IR_ADJUST_HIGH, CONFIG_DEFAULT)) {
+        isl_sensor.working = false;
     }
-    return true;
+    return isl_sensor;
 }
 
 
-void isl29125_start(void) {
-    isl29125_write8(CONFIG_REG_1, CONFIG1_RGB_MODE | CONFIG1_10KLUX);
+void isl29125_start(ISL29125 sensor) {
+    isl29125_write8(sensor, CONFIG_REG_1, CONFIG1_RGB_MODE | CONFIG1_10KLUX);
 }
 
-void isl29125_sleep(void) {
-    isl29125_write8(CONFIG_REG_1, CONFIG1_STANDBY | CONFIG1_10KLUX);
+void isl29125_sleep(ISL29125 sensor) {
+    isl29125_write8(sensor, CONFIG_REG_1, CONFIG1_STANDBY | CONFIG1_10KLUX);
 }
 
-void isl29125_stop(void) {
-    isl29125_write8(CONFIG_REG_1, CONFIG1_POWERDOWN | CONFIG1_10KLUX);
+void isl29125_stop(ISL29125 sensor) {
+    isl29125_write8(sensor, CONFIG_REG_1, CONFIG1_POWERDOWN | CONFIG1_10KLUX);
 }
 
 /******************************************************************************
@@ -104,17 +94,17 @@ void isl29125_stop(void) {
 *
 *******************************************************************************/
 
-static bool isl29125_reset(void) {
+static bool isl29125_reset(ISL29125 sensor) {
     uint8 data = 0x00;
     
     // Reset the registers
-    isl29125_write8(DEVICE_ID_REG, DEVICE_RESET_CODE);
+    isl29125_write8(sensor, DEVICE_ID_REG, DEVICE_RESET_CODE);
     
     // Check reset
-    data = sensor_read8(I2C_ADDRESS, CONFIG_REG_1, read_buffer);
-    data |= sensor_read8(I2C_ADDRESS, CONFIG_REG_2, read_buffer);
-    data |= sensor_read8(I2C_ADDRESS, CONFIG_REG_3, read_buffer);
-    data |= sensor_read8(I2C_ADDRESS, STATUS_REG, read_buffer);
+    data = sensor_read8(sensor.comm, CONFIG_REG_1);
+    data |= sensor_read8(sensor.comm, CONFIG_REG_2);
+    data |= sensor_read8(sensor.comm, CONFIG_REG_3);
+    data |= sensor_read8(sensor.comm, STATUS_REG);
     if (data == 0x00) {
         return true;
     }
@@ -139,22 +129,22 @@ static bool isl29125_reset(void) {
 *
 *******************************************************************************/
 
-static bool isl29125_config(uint8 config1, uint8 config2, uint8 config3) {
+static bool isl29125_config(ISL29125 sensor, uint8 config1, uint8 config2, uint8 config3) {
     uint8 data;  
     // set up the registers
-    isl29125_write8(CONFIG_REG_1, config1);
-    isl29125_write8(CONFIG_REG_2, config2);
-    isl29125_write8(CONFIG_REG_3, config3);
+    isl29125_write8(sensor, CONFIG_REG_1, config1);
+    isl29125_write8(sensor, CONFIG_REG_2, config2);
+    isl29125_write8(sensor, CONFIG_REG_3, config3);
     // confirm the registers are correct
-    data = sensor_read8(I2C_ADDRESS, CONFIG_REG_1, read_buffer);
+    data = sensor_read8(sensor.comm, CONFIG_REG_1);
     if (data != config1) {
         return false;
     }
-    data = sensor_read8(I2C_ADDRESS, CONFIG_REG_2, read_buffer);
+    data = sensor_read8(sensor.comm, CONFIG_REG_2);
     if (data != config2) {
         return false;
     }
-    data = sensor_read8(I2C_ADDRESS, CONFIG_REG_3, read_buffer);
+    data = sensor_read8(sensor.comm, CONFIG_REG_3);
     if (data != config3) {
         return false;
     }
@@ -173,8 +163,8 @@ static bool isl29125_config(uint8 config1, uint8 config2, uint8 config3) {
 *
 *******************************************************************************/
 
-uint8 isl29125_read_id(void) {
-    return sensor_read8(I2C_ADDRESS, DEVICE_ID_REG, read_buffer); 
+uint8 isl29125_read_id(ISL29125 sensor) {
+    return sensor_read8(sensor.comm, DEVICE_ID_REG); 
 }
 
 /******************************************************************************
@@ -190,8 +180,8 @@ uint8 isl29125_read_id(void) {
 *
 *******************************************************************************/
 
-uint16 isl29125_read_red(void) {
-    return sensor_read16(I2C_ADDRESS, RED_REG_L, read_buffer);
+uint16 isl29125_read_red(ISL29125 sensor) {
+    return sensor_read16(sensor.comm, RED_REG_L);
   
 }
 
@@ -208,8 +198,8 @@ uint16 isl29125_read_red(void) {
 *
 *******************************************************************************/
 
-uint16 isl29125_read_green(void) {
-    return sensor_read16(I2C_ADDRESS, GREEN_REG_L, read_buffer);
+uint16 isl29125_read_green(ISL29125 sensor) {
+    return sensor_read16(sensor.comm, GREEN_REG_L);
   
 }
 
@@ -226,8 +216,8 @@ uint16 isl29125_read_green(void) {
 *
 *******************************************************************************/
 
-uint16 isl29125_read_blue(void) {
-    return sensor_read16(I2C_ADDRESS, BLUE_REG_L, read_buffer);
+uint16 isl29125_read_blue(ISL29125 sensor) {
+    return sensor_read16(sensor.comm, BLUE_REG_L);
 }
 
 /*****************************************************************************
@@ -243,10 +233,10 @@ uint16 isl29125_read_blue(void) {
 *
 *******************************************************************************/
 
-static void isl29125_write8(uint8 _register, uint8 data) {
+static void isl29125_write8(ISL29125 sensor, uint8 _register, uint8 data) {
     write_buffer[0] = _register;
     write_buffer[1] = data;
-    sensor_write8(I2C_ADDRESS, write_buffer);
+    sensor_write8(sensor.comm);
 }
 
 /* [] END OF FILE */

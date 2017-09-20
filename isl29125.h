@@ -23,6 +23,23 @@
 #include <project.h>
 #include "sensor.h"
 #include "stdbool.h"
+
+    
+/***************************************
+*      Structures
+***************************************/ 
+
+typedef struct {
+    SensorComm  comm;
+    uint8       working;  // Status of the device
+    uint8       color_mode;
+    uint8       intensity_range;
+    uint8       adc_resolution;
+    uint8       int_setting;
+    uint8       ir_offset;
+    uint8       ir_setting;
+    uint8       interrupt_color; 
+} ISL29125;
     
     
 #define I2C_ADDRESS         0x44  
@@ -109,21 +126,21 @@
 *        Function Prototypes
 ***************************************/     
 
-bool isl29125_init(void);    
-void isl29125_start(void);
-void isl29125_sleep(void);
-void isl29125_stop(void);
-uint8 isl29125_read_id(void);
+ISL29125 isl29125_init(void);    
+void isl29125_start(ISL29125 sensor);
+void isl29125_sleep(ISL29125 sensor);
+void isl29125_stop(ISL29125 sensor);
+uint8 isl29125_read_id(ISL29125 sensor);
 
-void set_upper_threshold(uint16 level);
-void set_lower_threshold(uint16 level);
+void set_upper_threshold(ISL29125 sensor, uint16 level);
+void set_lower_threshold(ISL29125 sensor, uint16 level);
 
-void set_adc_resolution(uint8 resolution);
-void get_adc_resolution(uint8 resolution);
+void set_adc_resolution(ISL29125 sensor, uint8 resolution);
+void get_adc_resolution(ISL29125 sensor, uint8 resolution);
 
-uint16 isl29125_read_red(void);
-uint16 isl29125_read_green(void);
-uint16 isl29125_read_blue(void);
+uint16 isl29125_read_red(ISL29125 sensor);
+uint16 isl29125_read_green(ISL29125 sensor);
+uint16 isl29125_read_blue(ISL29125 sensor);
 
 #endif
 /* [] END OF FILE */

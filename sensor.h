@@ -23,14 +23,27 @@
     
 #include <project.h>
 #include "stdbool.h"
+    
+    
+/***************************************
+*     Data Struct Definitions
+***************************************/
+    
+typedef struct {
+    uint8 address;
+    uint8 buffer[10];
+} SensorComm;
   
 /***************************************
 *        Function Prototypes
 ***************************************/   
 
-void sensor_write8(uint8 _address, uint8* write_buffer);
-uint8 sensor_read8(uint8 _address, uint8 _register, uint8* read_buffer);  
-uint16 sensor_read16(uint8 _address, uint8 _register, uint8* read_buffer);
+void sensor_write8(SensorComm sensor_comm);
+void sensor_write16(SensorComm sensor_comm);
+void sensor_write_n(SensorComm sensor_comm, uint8 num_bytes);
+uint8 sensor_read8(SensorComm _address, uint8 _register);  
+uint16 sensor_read16(SensorComm _address, uint8 _register);
+void sensor_read_n(SensorComm sensor_comm, uint8 _register, uint8 num_bytes)
 
 #endif
 
