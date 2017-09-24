@@ -32,19 +32,19 @@ int main(void)
     LCD_Position(0, 0);
     LCD_PrintString("Sensor");
     
-    ISL29125 isl29125 = isl29125_init();
+    isl29125_init();
 
     for(;;) {
         CyDelay(1000);
         LCD_ClearDisplay();
-        uint8 ID = isl29125_read_id(isl29125);
+        uint8 ID = isl29125_read_id();
         LCD_Position(0, 0);
         sprintf(LCD_str, "id: 0x%02X", ID);
         LCD_PrintString(LCD_str);
         
-        red = isl29125_read_red(isl29125);
-        green = isl29125_read_green(isl29125);
-        blue = isl29125_read_blue(isl29125);
+        red = isl29125_read_red();
+        green = isl29125_read_green();
+        blue = isl29125_read_blue();
         LCD_Position(1,0);
         sprintf(LCD_str, "r:%i,g:%i,b:%i ", red, green, blue);
         LCD_PrintString(LCD_str); 

@@ -22,16 +22,17 @@ uint8 read_buffer[8];
 uint8 write_buffer[2];
 
 
-
-
 /***************************************
 *      Static Function Prototypes
 ***************************************/  
 
-static bool isl29125_reset(ISL29125 sensor);
-static bool isl29125_config(ISL29125 sensor, uint8 config1, uint8 config2, uint8 config3);
+static inline bool isl29125_reset(void);
+static inline bool isl29125_config(uint8 config1, uint8 config2, uint8 config3);
 
-static inline void isl29125_write8(ISL29125 sensor, uint8 _register, uint8 data);
+static inline void isl29125_write8(uint8 _register, uint8 data);
+
+static inline uint8 isl29125_read8(uint8 _register);
+static inline uint16 isl29125_read16(uint8 _register);
 
 
 /******************************************************************************
@@ -49,36 +50,33 @@ static inline void isl29125_write8(ISL29125 sensor, uint8 _register, uint8 data)
 *
 *******************************************************************************/
 
-ISL29125 isl29125_init(void) {
+void isl29125_init(void) {
     uint8 data;
-    ISL29125 isl_sensor;
-    isl_sensor.comm.address = I2C_ADDRESS;
     
-    data = sensor_read8(isl_sensor.comm, DEVICE_ID_REG);
+    data = isl29125_read8(DEVICE_ID_REG);
     if (data != DEVICE_ID) {
-        isl_sensor.working = false;
+        isl29125.working = false;
     }
-    if (!isl29125_reset(isl_sensor)) {
-        isl_sensor.working = false;
+    if (!isl29125_reset()) {
+        isl29125.working = false;
     }
     
-    if (!isl29125_config(isl_sensor, CONFIG1_RGB_MODE | CONFIG1_10KLUX, CONFIG2_IR_ADJUST_HIGH, CONFIG_DEFAULT)) {
-        isl_sensor.working = false;
+    if (!isl29125_config(CONFIG1_RGB_MODE | CONFIG1_10KLUX, CONFIG2_IR_ADJUST_HIGH, CONFIG_DEFAULT)) {
+        isl29125.working = false;
     }
-    return isl_sensor;
 }
 
 
-void isl29125_start(ISL29125 sensor) {
-    isl29125_write8(sensor, CONFIG_REG_1, CONFIG1_RGB_MODE | CONFIG1_10KLUX);
+void isl29125_start(void) {
+    isl29125_write8(CONFIG_REG_1, CONFIG1_RGB_MODE | CONFIG1_10KLUX);
 }
 
-void isl29125_sleep(ISL29125 sensor) {
-    isl29125_write8(sensor, CONFIG_REG_1, CONFIG1_STANDBY | CONFIG1_10KLUX);
+void isl29125_sleep(void) {
+    isl29125_write8(CONFIG_REG_1, CONFIG1_STANDBY | CONFIG1_10KLUX);
 }
 
-void isl29125_stop(ISL29125 sensor) {
-    isl29125_write8(sensor, CONFIG_REG_1, CONFIG1_POWERDOWN | CONFIG1_10KLUX);
+void isl29125_stop(void) {
+    isl29125_write8(CONFIG_REG_1, CONFIG1_POWERDOWN | CONFIG1_10KLUX);
 }
 
 /******************************************************************************
@@ -94,17 +92,17 @@ void isl29125_stop(ISL29125 sensor) {
 *
 *******************************************************************************/
 
-static bool isl29125_reset(ISL29125 sensor) {
+static bool isl29125_reset(void) {
     uint8 data = 0x00;
     
     // Reset the registers
-    isl29125_write8(sensor, DEVICE_ID_REG, DEVICE_RESET_CODE);
+    isl29125_write8(DEVICE_ID_REG, DEVICE_RESET_CODE);
     
     // Check reset
-    data = sensor_read8(sensor.comm, CONFIG_REG_1);
-    data |= sensor_read8(sensor.comm, CONFIG_REG_2);
-    data |= sensor_read8(sensor.comm, CONFIG_REG_3);
-    data |= sensor_read8(sensor.comm, STATUS_REG);
+    data = isl29125_read8(CONFIG_REG_1);
+    data |= isl29125_read8(CONFIG_REG_2);
+    data |= isl29125_read8(CONFIG_REG_3);
+    data |= isl29125_read8(STATUS_REG);
     if (data == 0x00) {
         return true;
     }
@@ -129,22 +127,22 @@ static bool isl29125_reset(ISL29125 sensor) {
 *
 *******************************************************************************/
 
-static bool isl29125_config(ISL29125 sensor, uint8 config1, uint8 config2, uint8 config3) {
+static bool isl29125_config(uint8 config1, uint8 config2, uint8 config3) {
     uint8 data;  
     // set up the registers
-    isl29125_write8(sensor, CONFIG_REG_1, config1);
-    isl29125_write8(sensor, CONFIG_REG_2, config2);
-    isl29125_write8(sensor, CONFIG_REG_3, config3);
+    isl29125_write8(CONFIG_REG_1, config1);
+    isl29125_write8(CONFIG_REG_2, config2);
+    isl29125_write8(CONFIG_REG_3, config3);
     // confirm the registers are correct
-    data = sensor_read8(sensor.comm, CONFIG_REG_1);
+    data = isl29125_read8(CONFIG_REG_1);
     if (data != config1) {
         return false;
     }
-    data = sensor_read8(sensor.comm, CONFIG_REG_2);
+    data = isl29125_read8(CONFIG_REG_2);
     if (data != config2) {
         return false;
     }
-    data = sensor_read8(sensor.comm, CONFIG_REG_3);
+    data = isl29125_read8(CONFIG_REG_3);
     if (data != config3) {
         return false;
     }
@@ -163,8 +161,8 @@ static bool isl29125_config(ISL29125 sensor, uint8 config1, uint8 config2, uint8
 *
 *******************************************************************************/
 
-uint8 isl29125_read_id(ISL29125 sensor) {
-    return sensor_read8(sensor.comm, DEVICE_ID_REG); 
+uint8 isl29125_read_id(void) {
+    return isl29125_read8(DEVICE_ID_REG); 
 }
 
 /******************************************************************************
@@ -180,8 +178,8 @@ uint8 isl29125_read_id(ISL29125 sensor) {
 *
 *******************************************************************************/
 
-uint16 isl29125_read_red(ISL29125 sensor) {
-    return sensor_read16(sensor.comm, RED_REG_L);
+uint16 isl29125_read_red(void) {
+    return isl29125_read16(RED_REG_L);
   
 }
 
@@ -198,8 +196,8 @@ uint16 isl29125_read_red(ISL29125 sensor) {
 *
 *******************************************************************************/
 
-uint16 isl29125_read_green(ISL29125 sensor) {
-    return sensor_read16(sensor.comm, GREEN_REG_L);
+uint16 isl29125_read_green(void) {
+    return isl29125_read16(GREEN_REG_L);
   
 }
 
@@ -216,8 +214,8 @@ uint16 isl29125_read_green(ISL29125 sensor) {
 *
 *******************************************************************************/
 
-uint16 isl29125_read_blue(ISL29125 sensor) {
-    return sensor_read16(sensor.comm, BLUE_REG_L);
+uint16 isl29125_read_blue(void) {
+    return isl29125_read16(BLUE_REG_L);
 }
 
 /*****************************************************************************
@@ -225,7 +223,7 @@ uint16 isl29125_read_blue(ISL29125 sensor) {
 *******************************************************************************
 *
 * Summary:
-*  Write a byte of data to tthe specified register.  Uses the sensors.c library
+*  Write a byte of data to the specified register.  Uses the sensors.c library
 *
 * Parameters:
 *  uint8 _register: register of isl29125 to write to
@@ -233,10 +231,50 @@ uint16 isl29125_read_blue(ISL29125 sensor) {
 *
 *******************************************************************************/
 
-static void isl29125_write8(ISL29125 sensor, uint8 _register, uint8 data) {
+static void isl29125_write8(uint8 _register, uint8 data) {
     write_buffer[0] = _register;
     write_buffer[1] = data;
-    sensor_write8(sensor.comm);
+    sensor_write8(ISL29125_I2C_ADDRESS, write_buffer);
 }
+
+/*****************************************************************************
+* Function Name: isl29A125_read8
+*******************************************************************************
+*
+* Summary:
+*  Read a byte of data from the specified register.  Uses the sensors.c library
+*
+* Parameters:
+*  uint8 _register: register of isl29125 to read from
+*  uint8 data: value to put into the _register of the isl29125
+*
+* Return:
+*  uint8: value of the register.
+*
+*******************************************************************************/
+
+static uint8 isl29125_read8(uint8 _register) {
+    return sensor_read8(ISL29125_I2C_ADDRESS, read_buffer, _register);
+}
+
+/*****************************************************************************
+* Function Name: isl29125_read16
+*******************************************************************************
+*
+* Summary:
+*  Read 2 bytes of data starting from the specified register. Uses the sensors.c library
+*
+* Parameters:
+*  uint8 _register: register of isl29125 to read from
+*
+* Return:
+*  uint16: value of the registers.
+*
+*******************************************************************************/
+
+static uint16 isl29125_read16(uint8 _register) {
+    return sensor_read16(ISL29125_I2C_ADDRESS, read_buffer, _register);
+}
+
 
 /* [] END OF FILE */
