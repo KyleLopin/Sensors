@@ -29,6 +29,10 @@ uint8 write_buffer[2];
 static inline bool isl29125_reset(void);
 static inline bool isl29125_config(uint8 config1, uint8 config2, uint8 config3);
 
+static uint8 config_register1(void);
+static uint8 config_register2(void);
+static uint8 config_register3(void);
+
 static inline void isl29125_write8(uint8 _register, uint8 data);
 
 static inline uint8 isl29125_read8(uint8 _register);
@@ -45,8 +49,8 @@ static inline uint16 isl29125_read16(uint8 _register);
 *  and then configure it to read in the rgb mode, at the high lux setting
 *  and with the ir adjustment set to high.
 *
-* Return:
-*  bool: true if the device was initialized, or false if not
+* Global Parameters:
+*  ISL29125 isl29125: structure to save settings of the isl29125
 *
 *******************************************************************************/
 
@@ -61,22 +65,71 @@ void isl29125_init(void) {
         isl29125.working = false;
     }
     
-    if (!isl29125_config(CONFIG1_RGB_MODE | CONFIG1_10KLUX, CONFIG2_IR_ADJUST_HIGH, CONFIG_DEFAULT)) {
+    if (!isl29125_config(CONFIG1_RGB_MODE | CONFIG1_10KLUX, CONFIG2_IR_ADJUST_HIGH, CONFIG3_NO_INT)) {
         isl29125.working = false;
     }
+    isl29125.color_mode = CONFIG1_RGB_MODE;
+    isl29125.intensity_range = CONFIG1_10KLUX;
+    isl29125.adc_resolution = CONFIG1_ADC_16BIT;
+    isl29125.isr_setting = CONFIG1_NO_SYNC;
+    isl29125.ir_offset = CONFIG2_IR_OFFSET_OFF;
+    isl29125.ir_setting = CONFIG2_IR_ADJUST_HIGH;
+    isl29125.interrupt_color = CONFIG3_NO_INT;
+    isl29125.working = true;
 }
 
+/******************************************************************************
+* Function Name: isl29125_start
+*******************************************************************************
+*
+* Summary:
+*  Start the isl29125 in rgb mode
+*
+* Global Parameters:
+*  ISL29125 isl29125: structure to save settings of the isl29125
+*
+*******************************************************************************/
 
 void isl29125_start(void) {
-    isl29125_write8(CONFIG_REG_1, CONFIG1_RGB_MODE | CONFIG1_10KLUX);
+    isl29125.color_mode = CONFIG1_RGB_MODE;
+    isl29125.config_reg1 |= CONFIG1_RGB_MODE;
+    isl29125_write8(CONFIG_REG_1, isl29125.config_reg1);
 }
+
+/******************************************************************************
+* Function Name: isl29125_sleep
+*******************************************************************************
+*
+* Summary:
+*  Put the isl29125 into the standby mode
+*
+* Global Parameters:
+*  ISL29125 isl29125: structure to save settings of the isl29125
+*
+*******************************************************************************/
 
 void isl29125_sleep(void) {
-    isl29125_write8(CONFIG_REG_1, CONFIG1_STANDBY | CONFIG1_10KLUX);
+    isl29125.color_mode = CONFIG1_STANDBY;
+    isl29125.config_reg1 |= CONFIG1_STANDBY;
+    isl29125_write8(CONFIG_REG_1, isl29125.config_reg1);
 }
 
+/******************************************************************************
+* Function Name: isl29125_stop
+*******************************************************************************
+*
+* Summary:
+*  Power down the isl29125
+*
+* Global Parameters:
+*  ISL29125 isl29125: structure to save settings of the isl29125
+*
+*******************************************************************************/
+
 void isl29125_stop(void) {
-    isl29125_write8(CONFIG_REG_1, CONFIG1_POWERDOWN | CONFIG1_10KLUX);
+    isl29125.color_mode = CONFIG1_POWERDOWN;
+    isl29125.config_reg1 |= CONFIG1_POWERDOWN;
+    isl29125_write8(CONFIG_REG_1, isl29125.config_reg1);
 }
 
 /******************************************************************************
@@ -216,6 +269,58 @@ uint16 isl29125_read_green(void) {
 
 uint16 isl29125_read_blue(void) {
     return isl29125_read16(BLUE_REG_L);
+}
+
+/******************************************************************************
+* Function Name: isl29125_config_register1
+*******************************************************************************
+*
+* Summary:
+*  Take the isl29125 setting and make the byte the first
+*   configuration register should be set to.
+*
+* Return:
+*  uint8: value to set the isl29125's first configuration register to
+*
+*******************************************************************************/
+
+static uint8 config_register1(void){
+    return (isl29125.color_mode | isl29125.intensity_range | 
+            isl29125.adc_resolution | isl29125.isr_setting);
+}
+
+/******************************************************************************
+* Function Name: isl29125_config_register2
+*******************************************************************************
+*
+* Summary:
+*  Take the isl29125 setting and make the byte the second
+*   configuration register should be set to.
+*
+* Return:
+*  uint8: value to set the isl29125's second configuration register to
+*
+*******************************************************************************/
+
+static uint8 config_register2(void){
+    return (isl29125.ir_setting | isl29125.ir_offset);
+}
+
+/******************************************************************************
+* Function Name: isl29125_config_register3
+*******************************************************************************
+*
+* Summary:
+*  Take the isl29125 setting and make the byte the third
+*   configuration register should be set to.
+*
+* Return:
+*  uint8: value to set the isl29125's third configuration register to
+*
+*******************************************************************************/
+
+static uint8 config_register3(void){
+    return (isl29125.interrupt_color);
 }
 
 /*****************************************************************************

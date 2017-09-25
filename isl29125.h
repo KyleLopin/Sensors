@@ -34,10 +34,13 @@ typedef struct {
     uint8       color_mode;
     uint8       intensity_range;
     uint8       adc_resolution;
-    uint8       int_setting;
+    uint8       isr_setting;
     uint8       ir_offset;
     uint8       ir_setting;
     uint8       interrupt_color; 
+    uint8       config_reg1;
+    uint8       config_reg2;
+    uint8       config_reg3;
 } ISL29125;
 
 ISL29125 isl29125;
@@ -89,8 +92,8 @@ ISL29125 isl29125;
 #define CONFIG1_375LUX              0x00
 #define CONFIG1_10KLUX              0x08
 // ADC accuracy
-#define CONFIG1_16BIT               0x00
-#define CONFIG1_12BIT               0x10
+#define CONFIG1_ADC_16BIT           0x00
+#define CONFIG1_ADC_12BIT           0x10
 // interrupt pin setting
 #define CONFIG1_NO_SYNC             0x00
 #define CONFIG1_SYNC_TO_INT         0x20
