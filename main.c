@@ -14,6 +14,7 @@
 
 // local files
 #include "isl29125.h"
+#include "tsl2561.h"
 
 uint8 count = 0;
 char LCD_str[40];
@@ -37,7 +38,7 @@ int main(void)
     for(;;) {
         CyDelay(1000);
         LCD_ClearDisplay();
-        uint8 ID = isl29125_read_id();
+        uint8 ID = tsl2561_read_id();
         LCD_Position(0, 0);
         sprintf(LCD_str, "id: 0x%02X", ID);
         LCD_PrintString(LCD_str);
